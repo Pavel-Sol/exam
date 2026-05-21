@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Хост: 127.0.0.1
--- Время создания: Май 21 2026 г., 18:02
+-- Время создания: Май 21 2026 г., 18:51
 -- Версия сервера: 10.4.32-MariaDB
 -- Версия PHP: 8.2.12
 
@@ -109,6 +109,13 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+-- Дамп данных таблицы `users`
+--
+
+INSERT INTO `users` (`id`, `login`, `password_hash`, `full_name`, `phone`, `email`, `role_id`, `created_at`) VALUES
+(1, 'Admin', '9a4773c146fc0b2919e2732361e73483e86e15b10594812adae35e9c5af1cd9c', 'Админ', '8(999)111-22-33', 'admin@test.ru', 2, '2026-05-21 16:48:35');
+
+--
 -- Индексы сохранённых таблиц
 --
 
@@ -194,7 +201,7 @@ ALTER TABLE `roles`
 -- AUTO_INCREMENT для таблицы `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- Ограничения внешнего ключа сохраненных таблиц
