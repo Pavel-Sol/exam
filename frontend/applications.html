@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Мои заявки — Корочки.есть</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="container">
+  <h1>Мои заявки</h1>
+  <div id="authWarn" style="display:none">
+    <p>Требуется авторизация.</p><a href="/login">Войти</a>
+  </div>
+  <div id="content" style="display:none">
+    <h2>Список заявок</h2>
+    <div style="overflow-x:auto">
+      <table class="table">
+        <thead><tr><th>ID</th><th>Курс</th><th>Дата</th><th>Оплата</th><th>Статус</th><th>Создана</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p><a href="/create_application">+ Новая заявка</a></p>
+
+    <div class="card">
+      <h2>Отзыв</h2>
+      <div id="reviewStatus" class="msg"></div>
+      <form id="reviewForm">
+        <div class="field">
+          <label>Текст отзыва</label>
+          <textarea id="reviewText" placeholder="Введите отзыв" disabled></textarea>
+        </div>
+        <div class="actions">
+          <button id="reviewSubmit" type="submit" disabled>Отправить отзыв</button>
+        </div>
+        <p id="reviewMsg" class="msg"></p>
+      </form>
+    </div>
+
+    <p id="msg" class="msg"></p>
+  </div>
+</div>
+<script>
+const uid = localStorage.getItem("user_id");
+
+if (!uid) {
+  document.getElementById("authWarn").style.display = "block";
+} else {
+  document.getElementById("content").style.display = "block";
+
+  async function load() {
+    const res = await fetch("/api/applications/my?user_id=" + uid);
+    const j   = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      document.getElementById("msg").textContent = j.error || "Ошибка.";
+      return;
+    }
+    const apps = j.applications || [];
+    const tb   = document.getElementById("tbody");
+    tb.innerHTML = apps.length
+      ? apps.map(a => `<tr><td>${a.id}</td><td>${a.course_name}</td>
+          <td>${a.start_date}</td><td>${a.payment_method}</td>
+          <td>${a.status}</td><td>${a.created_at}</td></tr>`).join("")
+      : "<tr><td colspan='6'>Заявок нет</td></tr>";
+
+    // Отзыв доступен только после завершения курса
+    const done = apps.some(a => a.status === "Обучение завершено");
+    const rs   = document.getElementById("reviewStatus");
+    const rt   = document.getElementById("reviewText");
+    const rb   = document.getElementById("reviewSubmit");
+    if (done) {
+      rs.className = "msg ok";
+      rs.textContent = "Курс завершён. Можно оставить отзыв.";
+      rt.disabled = rb.disabled = false;
+    } else {
+      rs.className = "msg error";
+      rs.textContent = "Отзыв доступен только после завершения курса.";
+      document.getElementById("reviewForm").classList.add("is-locked");
+    }
+  }
+  load();
+
+  document.getElementById("reviewForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const text = document.getElementById("reviewText").value.trim();
+    if (!text) return;
+    const res = await fetch("/api/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: Number(uid), text })
+    });
+    const j = await res.json().catch(() => ({}));
+    const rm = document.getElementById("reviewMsg");
+    rm.textContent = res.ok ? "Отзыв отправлен." : j.error || "Ошибка.";
+    rm.className   = res.ok ? "msg ok" : "msg error";
+    if (res.ok) document.getElementById("reviewText").value = "";
+  });
+}
+</script>
+</body>
+</html>

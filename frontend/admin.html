@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Администратор — Корочки.есть</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="container">
+  <h1>Панель администратора</h1>
+  <div id="accessWarn" style="display:none">
+    <p>Доступ запрещён.</p><a href="/login">Войти</a>
+  </div>
+  <div id="content" style="display:none">
+    <h2>Все заявки</h2>
+    <div style="overflow-x:auto">
+      <table class="table">
+        <thead><tr>
+          <th>ID</th><th>Логин</th><th>Курс</th>
+          <th>Дата</th><th>Оплата</th><th>Статус</th><th>Действие</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p id="msg" class="msg"></p>
+  </div>
+</div>
+<script>
+const role = localStorage.getItem("role");
+if (role !== "admin") {
+  document.getElementById("accessWarn").style.display = "block";
+} else {
+  document.getElementById("content").style.display = "block";
+
+  function render(apps) {
+    const tb = document.getElementById("tbody");
+    tb.innerHTML = apps.length
+      ? apps.map(a => `<tr>
+          <td>${a.id}</td><td>${a.user_login}</td><td>${a.course_name}</td>
+          <td>${a.start_date}</td><td>${a.payment_method}</td>
+          <td><select class="ss" data-id="${a.id}">
+            <option ${a.status==="Новая"?"selected":""}>Новая</option>
+            <option ${a.status==="Идёт обучение"?"selected":""}>Идёт обучение</option>
+            <option ${a.status==="Обучение завершено"?"selected":""}>Обучение завершено</option>
+          </select></td>
+          <td><button class="sb" data-id="${a.id}">Сохранить</button></td>
+        </tr>`).join("")
+      : "<tr><td colspan='7'>Заявок нет</td></tr>";
+    tb.querySelectorAll(".sb").forEach(b => b.addEventListener("click", async () => {
+      const id  = b.dataset.id;
+      const sel = tb.querySelector(`.ss[data-id="${id}"]`);
+      const res = await fetch(`/api/admin/applications/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: sel.value })
+      });
+      const j = await res.json().catch(() => ({}));
+      const msg = document.getElementById("msg");
+      msg.textContent = res.ok ? "Статус обновлён." : j.error || "Ошибка.";
+      msg.className   = res.ok ? "msg ok" : "msg error";
+    }));
+  }
+
+  async function load() {
+    const res = await fetch("/api/admin/applications");
+    const j   = await res.json().catch(() => ({}));
+    if (!res.ok) { document.getElementById("msg").textContent = j.error || "Ошибка."; return; }
+    render(j.applications || []);
+  }
+  load();
+}
+</script>
+</body>
+</html>
