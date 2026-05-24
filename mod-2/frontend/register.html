@@ -11,32 +11,36 @@
 <body>
   <div class="container">
     <h1>Регистрация</h1>
-
     <div class="card">
-      <form id="f">
+      <form id="f" novalidate>
         <div class="field">
-          <label>Логин</label>
-          <input name="login" required minlength="6" pattern="^[A-Za-z0-9]{6,}$"
+          <label for="login">Логин</label>
+          <input id="login" name="login" required minlength="6" pattern="^[A-Za-z0-9]{6,}$"
             placeholder="Латиница/цифры, от 6 символов">
+          <div class="field-hint error" id="loginErr" style="display:none"></div>
         </div>
         <div class="field">
-          <label>Пароль</label>
-          <input name="password" type="password" required minlength="8" placeholder="Минимум 8 символов">
+          <label for="password">Пароль</label>
+          <input id="password" name="password" type="password" required minlength="8" placeholder="Минимум 8 символов">
+          <div class="field-hint error" id="passErr" style="display:none"></div>
         </div>
         <div class="field">
-          <label>ФИО</label>
-          <input name="full_name" required pattern="^[А-Яа-яЁё\s]+$" placeholder="Кириллица и пробелы">
+          <label for="full_name">ФИО</label>
+          <input id="full_name" name="full_name" required pattern="^[А-Яа-яЁё\s]+$" placeholder="Кириллица и пробелы">
+          <div class="field-hint error" id="nameErr" style="display:none"></div>
         </div>
         <div class="field">
-          <label>Телефон</label>
-          <input name="phone" required pattern="^8\(\d{3}\)\d{3}-\d{2}-\d{2}$" placeholder="8(XXX)XXX-XX-XX">
+          <label for="phone">Телефон</label>
+          <input id="phone" name="phone" required pattern="^8\(\d{3}\)\d{3}-\d{2}-\d{2}$" placeholder="8(XXX)XXX-XX-XX">
+          <div class="field-hint error" id="phoneErr" style="display:none"></div>
         </div>
         <div class="field">
-          <label>Email</label>
-          <input name="email" type="email" required placeholder="name@example.com">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" required placeholder="name@example.com">
+          <div class="field-hint error" id="emailErr" style="display:none"></div>
         </div>
         <div class="actions">
-          <button type="submit">Создать пользователя</button>
+          <button type="submit">Зарегистрироваться</button>
         </div>
         <p id="msg" class="msg"></p>
       </form>
@@ -45,10 +49,35 @@
   </div>
   <script>
     const f = document.getElementById("f"), msg = document.getElementById("msg");
+    const fields = [
+      { id: "login", errId: "loginErr", text: "Логин: латиница/цифры, от 6 символов" },
+      { id: "password", errId: "passErr", text: "Пароль: не менее 8 символов" },
+      { id: "full_name", errId: "nameErr", text: "ФИО: только кириллица и пробелы" },
+      { id: "phone", errId: "phoneErr", text: "Телефон: формат 8(XXX)XXX-XX-XX" },
+      { id: "email", errId: "emailErr", text: "Укажите корректный email" },
+    ];
+
+    function validate() {
+      let ok = true;
+      for (const fd of fields) {
+        const el = document.getElementById(fd.id);
+        const err = document.getElementById(fd.errId);
+        if (!el.validity.valid) {
+          el.classList.add("is-error"); el.classList.remove("is-ok");
+          err.textContent = fd.text; err.style.display = "block";
+          ok = false;
+        } else {
+          el.classList.remove("is-error"); el.classList.add("is-ok");
+          err.style.display = "none";
+        }
+      }
+      return ok;
+    }
+
     f.addEventListener("submit", async e => {
       e.preventDefault();
       msg.textContent = "";
-      if (!f.checkValidity()) { msg.textContent = "Проверьте поля."; return; }
+      if (!validate()) return;
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -59,9 +88,9 @@
         })
       });
       const j = await res.json().catch(() => ({}));
-      msg.textContent = res.ok ? "Пользователь создан." : j.error || "Ошибка.";
+      msg.textContent = res.ok ? "Пользователь зарегистрирован." : j.error || "Ошибка.";
       msg.className = res.ok ? "msg ok" : "msg error";
-      if (res.ok) f.reset();
+      if (res.ok) { f.reset(); for (const fd of fields) { document.getElementById(fd.id).className = ""; } }
     });
   </script>
 </body>
