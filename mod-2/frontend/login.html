@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Авторизация — Корочки.есть</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+  <div class="container">
+    <h1>Авторизация</h1>
+    <div class="card">
+      <form id="f">
+        <div class="field">
+          <label>Логин</label>
+          <input name="login" required placeholder="Введите логин">
+        </div>
+        <div class="field">
+          <label>Пароль</label>
+          <input name="password" type="password" required placeholder="Введите пароль">
+        </div>
+        <div class="actions">
+          <button type="submit">Войти</button>
+        </div>
+        <p id="msg" class="msg"></p>
+      </form>
+    </div>
+    <p><a href="/register">Еще не зарегистрированы? Регистрация</a></p>
+  </div>
+  <script>
+    const f = document.getElementById("f"), msg = document.getElementById("msg");
+    f.addEventListener("submit", async e => {
+      e.preventDefault();
+      msg.textContent = "";
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ login: f.login.value.trim(), password: f.password.value })
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        msg.textContent = j.error || "Неверные данные.";
+        msg.className = "msg error";
+        return;
+      }
+      localStorage.setItem("user_id", j.user_id);
+      localStorage.setItem("role", j.role);
+      window.location.href = j.role === "admin" ? "/admin" : "/applications";
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Новая заявка — Корочки.есть</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+  <div class="container">
+    <h1>Новая заявка</h1>
+    <div id="authWarn" style="display:none">
+      <p>Требуется авторизация.</p><a href="/login">Войти</a>
+    </div>
+    <div id="content" style="display:none">
+      <div class="card">
+        <form id="f">
+          <div class="field">
+            <label>Наименование курса</label>
+            <input name="course_name" required placeholder="Введите название курса">
+          </div>
+          <div class="field">
+            <label>Желаемая дата начала обучения</label>
+            <input name="start_date" type="date" required>
+          </div>
+          <div class="field">
+            <label>Способ оплаты</label>
+            <label><input type="radio" name="pm" value="Наличными" required> Наличными</label><br>
+            <label><input type="radio" name="pm" value="Переводом по номеру телефона"> Переводом по номеру
+              телефона</label>
+          </div>
+          <div class="actions">
+            <button type="submit">Отправить</button>
+            <a href="/applications">Назад</a>
+          </div>
+          <p id="msg" class="msg"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script>
+    const uid = localStorage.getItem("user_id");
+    if (!uid) {
+      document.getElementById("authWarn").style.display = "block";
+    } else {
+      document.getElementById("content").style.display = "block";
+      const f = document.getElementById("f"), msg = document.getElementById("msg");
+      f.addEventListener("submit", async e => {
+        e.preventDefault();
+        msg.textContent = "";
+        const pm = f.querySelector("input[name=pm]:checked");
+        if (!pm) { msg.textContent = "Выберите способ оплаты."; return; }
+        const res = await fetch("/api/applications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: Number(uid),
+            course_name: f.course_name.value.trim(),
+            start_date: f.start_date.value,
+            payment_method: pm.value
+          })
+        });
+        const j = await res.json().catch(() => ({}));
+        msg.textContent = res.ok ? "Заявка отправлена." : j.error || "Ошибка.";
+        msg.className = res.ok ? "msg ok" : "msg error";
+        if (res.ok) f.reset();
+      });
+    }
+  </script>
+</body>
+
+</html>
