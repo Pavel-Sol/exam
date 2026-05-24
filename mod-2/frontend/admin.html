@@ -15,7 +15,33 @@
       <p>Доступ запрещён.</p><a href="/login">Войти</a>
     </div>
     <div id="content" style="display:none">
-      <h2>Все заявки</h2>
+
+      <!-- Фильтры -->
+      <div class="card">
+        <h2>Фильтры</h2>
+        <div class="row">
+          <div class="field">
+            <label>Статус</label>
+            <select id="fStatus">
+              <option value="">Все</option>
+              <option>Новая</option>
+              <option>Идёт обучение</option>
+              <option>Обучение завершено</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Поиск</label>
+            <input id="fText" type="text" placeholder="Логин или курс">
+          </div>
+        </div>
+        <div class="actions">
+          <button id="applyF">Применить</button>
+          <button id="resetF">Сбросить</button>
+          <button id="reload">Обновить</button>
+        </div>
+      </div>
+
+      <!-- Таблица -->
       <div style="overflow-x:auto">
         <table class="table">
           <thead>
@@ -32,21 +58,40 @@
           <tbody id="tbody"></tbody>
         </table>
       </div>
+
+      <!-- Пагинация -->
+      <div class="card" style="margin-top:12px">
+        <div class="actions" style="justify-content:space-between">
+          <button id="pagePrev">Назад</button>
+          <span class="badge" id="pageInfo">Стр. 1</span>
+          <button id="pageNext">Вперёд</button>
+        </div>
+      </div>
+
       <p id="msg" class="msg"></p>
     </div>
   </div>
-
+  <div id="toast" class="toast"></div>
   <script>
     const role = localStorage.getItem("role");
     if (role !== "admin") {
       document.getElementById("accessWarn").style.display = "block";
     } else {
       document.getElementById("content").style.display = "block";
+      let all = [], filt = [], page = 1;
+      const PS = 6;
 
-      function render(apps) {
+      function toast(type, text) {
+        const t = document.getElementById("toast");
+        t.className = `toast show ${type}`;
+        t.textContent = text;
+        setTimeout(() => { t.className = "toast"; t.textContent = ""; }, 2500);
+      }
+
+      function render(items) {
         const tb = document.getElementById("tbody");
-        tb.innerHTML = apps.length
-          ? apps.map(a => `<tr>
+        tb.innerHTML = items.length
+          ? items.map(a => `<tr>
           <td>${a.id}</td><td>${a.user_login}</td><td>${a.course_name}</td>
           <td>${a.start_date}</td><td>${a.payment_method}</td>
           <td><select class="ss" data-id="${a.id}">
@@ -66,18 +111,55 @@
             body: JSON.stringify({ status: sel.value })
           });
           const j = await res.json().catch(() => ({}));
-          const msg = document.getElementById("msg");
-          msg.textContent = res.ok ? "Статус обновлён." : j.error || "Ошибка.";
-          msg.className = res.ok ? "msg ok" : "msg error";
+          toast(res.ok ? "ok" : "error", res.ok ? "Статус сохранён" : j.error || "Ошибка");
+          if (res.ok) {
+            [all, filt].forEach(arr => {
+              const x = arr.find(a => String(a.id) === id);
+              if (x) x.status = sel.value;
+            });
+          }
         }));
+      }
+
+      function renderPage() {
+        const s = (page - 1) * PS;
+        render(filt.slice(s, s + PS));
+        const tp = Math.max(1, Math.ceil(filt.length / PS));
+        document.getElementById("pageInfo").textContent = `Стр. ${page} из ${tp}`;
+        document.getElementById("pagePrev").disabled = page <= 1;
+        document.getElementById("pageNext").disabled = page >= tp;
+      }
+
+      function applyFilters() {
+        const st = document.getElementById("fStatus").value;
+        const tx = document.getElementById("fText").value.toLowerCase();
+        filt = all.filter(a =>
+          (!st || a.status === st) &&
+          (!tx || `${a.user_login} ${a.course_name}`.toLowerCase().includes(tx))
+        );
+        page = 1; renderPage();
       }
 
       async function load() {
         const res = await fetch("/api/admin/applications");
         const j = await res.json().catch(() => ({}));
         if (!res.ok) { document.getElementById("msg").textContent = j.error || "Ошибка."; return; }
-        render(j.applications || []);
+        all = j.applications || []; filt = [...all]; page = 1; renderPage();
       }
+
+      document.getElementById("applyF").onclick = applyFilters;
+      document.getElementById("resetF").onclick = () => {
+        document.getElementById("fStatus").value = "";
+        document.getElementById("fText").value = "";
+        filt = [...all]; page = 1; renderPage();
+      };
+      document.getElementById("reload").onclick = load;
+      document.getElementById("pageNext").onclick = () => {
+        if (page < Math.ceil(filt.length / PS)) { page++; renderPage(); }
+      };
+      document.getElementById("pagePrev").onclick = () => {
+        if (page > 1) { page--; renderPage(); }
+      };
       load();
     }
   </script>
