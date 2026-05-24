@@ -20,6 +20,7 @@ body {
   color: var(--text);
 }
 
+/* mobile-first: базовые отступы под 390×844 */
 .container {
   max-width: 760px;
   margin: 16px auto;
@@ -53,6 +54,7 @@ label {
   font-weight: 600;
 }
 
+/* mobile-first: font-size 16px предотвращает zoom на iOS */
 input,
 textarea,
 select {
@@ -76,6 +78,13 @@ select:focus {
   outline-offset: 1px;
 }
 
+/* mobile-first: 1 колонка по умолчанию */
+.row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
 .actions {
   display: flex;
   gap: 10px;
@@ -83,6 +92,7 @@ select:focus {
   margin-top: 14px;
 }
 
+/* удобная кнопка для нажатия (min 44px) */
 button {
   padding: 12px 14px;
   min-height: 44px;
@@ -120,6 +130,30 @@ a:hover {
   color: var(--ok);
 }
 
+/* состояния полей */
+.is-error {
+  border-color: var(--danger) !important;
+}
+
+.is-ok {
+  border-color: var(--ok) !important;
+}
+
+.field-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.field-hint.error {
+  color: var(--danger);
+}
+
+.field-hint.ok {
+  color: var(--ok);
+}
+
+/* таблица с горизонтальной прокруткой на узких экранах */
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -129,6 +163,7 @@ a:hover {
   overflow: hidden;
   display: block;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table th,
@@ -145,6 +180,16 @@ a:hover {
   font-weight: 700;
 }
 
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  background: var(--surface);
+}
+
+/* заблокированная форма отзыва */
 #reviewForm.is-locked {
   opacity: .75;
 }
@@ -154,7 +199,56 @@ a:hover {
   cursor: not-allowed;
 }
 
+/* toast */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  min-width: 260px;
+  max-width: 92vw;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms ease;
+  z-index: 1000;
+}
+
+.toast.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.toast.ok {
+  border-color: rgba(11, 128, 67, .35);
+}
+
+.toast.error {
+  border-color: rgba(176, 0, 32, .35);
+}
+
+/* от 640px: две колонки, десктопные размеры */
 @media (min-width: 640px) {
+  .row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  button {
+    min-height: 0;
+    padding: 10px 14px;
+  }
+
   .table {
     display: table;
     overflow-x: visible;
@@ -166,6 +260,7 @@ a:hover {
   }
 }
 
+/* от 1024px */
 @media (min-width: 1024px) {
   .container {
     max-width: 980px;
