@@ -6,11 +6,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Мои заявки — Корочки.есть</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/slider.css">
 </head>
 
 <body>
   <div class="container">
     <h1>Мои заявки</h1>
+
+    <!-- Слайдер -->
+    <div class="card">
+      <div class="slider" id="slider">
+        <div class="slides">
+          <img class="slide is-active" src="/assets/1.webp" alt="Слайд 1">
+          <img class="slide" src="/assets/2.webp" alt="Слайд 2">
+          <img class="slide" src="/assets/3.webp" alt="Слайд 3">
+          <img class="slide" src="/assets/4.webp" alt="Слайд 4">
+        </div>
+        <button class="slider-btn prev" type="button" aria-label="Назад">&#10094;</button>
+        <button class="slider-btn next" type="button" aria-label="Вперёд">&#10095;</button>
+      </div>
+    </div>
+
+
     <div id="authWarn" style="display:none">
       <p>Требуется авторизация.</p><a href="/login">Войти</a>
     </div>
@@ -109,6 +126,8 @@
       });
     }
   </script>
+
+  <script src="/slider.js"></script>
 </body>
 
 </html>

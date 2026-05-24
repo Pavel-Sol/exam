@@ -47,6 +47,10 @@ app.get('/slider.js', (req, res) => {
     res.sendFile(path.join(frontendPath, 'slider.js'));
 });
 
+app.get('/slider.css', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'slider.css'));
+});
+
 app.use('/assets', express.static(path.join(frontendPath, 'assets')));
 
 // ---------- Вспомогательные функции ----------

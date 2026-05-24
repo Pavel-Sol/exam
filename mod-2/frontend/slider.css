@@ -1,0 +1,67 @@
+/* слайдер */
+.slider {
+   position: relative;
+   margin: 14px 0 18px;
+   border: 1px solid var(--border);
+   border-radius: 12px;
+   overflow: hidden;
+   background: #fff;
+}
+
+.slides {
+   position: relative;
+   height: 210px;
+}
+
+.slide {
+   position: absolute;
+   inset: 0;
+   width: 100%;
+   height: 100%;
+   object-fit: cover;
+   opacity: 0;
+   transform: scale(1.02);
+   transition: opacity 400ms ease, transform 400ms ease;
+}
+
+.slide.is-active {
+   opacity: 1;
+   transform: scale(1);
+}
+
+.slider-btn {
+   position: absolute;
+   top: 50%;
+   transform: translateY(-50%);
+   width: 42px;
+   height: 42px;
+   border-radius: 999px;
+   border: 1px solid var(--border);
+   background: rgba(255, 255, 255, .85);
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   cursor: pointer;
+   font-weight: 700;
+}
+
+.slider-btn.prev {
+   left: 10px;
+}
+
+.slider-btn.next {
+   right: 10px;
+}
+
+/* адаптив для слайдера */
+@media (min-width: 640px) {
+   .slides {
+      height: 260px;
+   }
+}
+
+@media (min-width: 1024px) {
+   .slides {
+      height: 300px;
+   }
+}
