@@ -14,54 +14,72 @@
 
     <div class="card">
       <form id="f">
+
         <div class="field">
           <label>Логин</label>
           <input name="login" required minlength="6" pattern="^[A-Za-z0-9]{6,}$"
             placeholder="Латиница/цифры, от 6 символов">
         </div>
+
         <div class="field">
           <label>Пароль</label>
           <input name="password" type="password" required minlength="8" placeholder="Минимум 8 символов">
         </div>
+
         <div class="field">
           <label>ФИО</label>
           <input name="full_name" required pattern="^[А-Яа-яЁё\s]+$" placeholder="Кириллица и пробелы">
         </div>
+
         <div class="field">
           <label>Телефон</label>
           <input name="phone" required pattern="^8\(\d{3}\)\d{3}-\d{2}-\d{2}$" placeholder="8(XXX)XXX-XX-XX">
         </div>
+
         <div class="field">
           <label>Email</label>
           <input name="email" type="email" required placeholder="name@example.com">
         </div>
+
         <div class="actions">
           <button type="submit">Создать пользователя</button>
         </div>
+
         <p id="msg" class="msg"></p>
+
       </form>
     </div>
     <p><a href="/login">Уже зарегистрированы? Войти</a></p>
   </div>
+
   <script>
-    const f = document.getElementById("f"), msg = document.getElementById("msg");
+    const f = document.getElementById("f");
+    const msg = document.getElementById("msg");
+
     f.addEventListener("submit", async e => {
+
       e.preventDefault();
       msg.textContent = "";
+
       if (!f.checkValidity()) { msg.textContent = "Проверьте поля."; return; }
+
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          login: f.login.value.trim(), password: f.password.value,
-          full_name: f.full_name.value.trim(), phone: f.phone.value.trim(),
+          login: f.login.value.trim(),
+          password: f.password.value,
+          full_name: f.full_name.value.trim(),
+          phone: f.phone.value.trim(),
           email: f.email.value.trim()
         })
       });
+
       const j = await res.json().catch(() => ({}));
       msg.textContent = res.ok ? "Пользователь создан." : j.error || "Ошибка.";
       msg.className = res.ok ? "msg ok" : "msg error";
       if (res.ok) f.reset();
+
     });
   </script>
 </body>

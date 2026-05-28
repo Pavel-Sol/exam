@@ -11,101 +11,145 @@
 <body>
   <div class="container">
     <h1>Мои заявки</h1>
+
+    <!-- Блок при отсутствии авторизации -->
     <div id="authWarn" style="display:none">
-      <p>Требуется авторизация.</p><a href="/login">Войти</a>
+      <p>Требуется авторизация.</p>
+      <a href="/login">Войти</a>
     </div>
+
+    <!-- Основной контент (виден только авторизованным) -->
     <div id="content" style="display:none">
       <h2>Список заявок</h2>
+
       <div style="overflow-x:auto">
         <table class="table">
           <thead>
             <tr>
               <th>ID</th>
               <th>Курс</th>
-              <th>Дата</th>
+              <th>Дата начала</th>
               <th>Оплата</th>
               <th>Статус</th>
-              <th>Создана</th>
+              <th>Дата создания</th>
             </tr>
           </thead>
-          <tbody id="tbody"></tbody>
+          <tbody id="applicationsList"></tbody>
         </table>
       </div>
-      <p><a href="/create_application">+ Новая заявка</a></p>
 
+      <p>
+        <a href="/create_application">+ Новая заявка</a>
+      </p>
+
+      <!-- Блок с отзывом -->
       <div class="card">
-        <h2>Отзыв</h2>
+        <h2>Отзыв о курсе</h2>
         <div id="reviewStatus" class="msg"></div>
+
         <form id="reviewForm">
           <div class="field">
-            <label>Текст отзыва</label>
+            <label for="reviewText">Текст отзыва</label>
             <textarea id="reviewText" placeholder="Введите отзыв" disabled></textarea>
           </div>
+
           <div class="actions">
-            <button id="reviewSubmit" type="submit" disabled>Отправить отзыв</button>
+            <button id="reviewSubmit" type="submit" disabled>
+              Отправить отзыв
+            </button>
           </div>
-          <p id="reviewMsg" class="msg"></p>
+
+          <p id="reviewMessage" class="msg"></p>
         </form>
       </div>
 
-      <p id="msg" class="msg"></p>
+      <p id="generalMessage" class="msg"></p>
     </div>
   </div>
 
   <script>
-    const uid = localStorage.getItem("user_id");
+    // Получаем ID пользователя из localStorage
+    const userId = localStorage.getItem("user_id");
 
-    if (!uid) {
+    // Проверка авторизации
+    if (!userId) {
       document.getElementById("authWarn").style.display = "block";
     } else {
       document.getElementById("content").style.display = "block";
 
+      // Загрузка заявок с сервера
       async function load() {
-        const res = await fetch("/api/applications/my?user_id=" + uid);
-        const j = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          document.getElementById("msg").textContent = j.error || "Ошибка.";
+        const response = await fetch("/api/applications/my?user_id=" + userId);
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          document.getElementById("generalMessage").textContent = data.error || "Ошибка.";
           return;
         }
-        const apps = j.applications || [];
-        const tb = document.getElementById("tbody");
-        tb.innerHTML = apps.length
-          ? apps.map(a => `<tr><td>${a.id}</td><td>${a.course_name}</td>
-          <td>${a.start_date}</td><td>${a.payment_method}</td>
-          <td>${a.status}</td><td>${a.created_at}</td></tr>`).join("")
+
+        const applications = data.applications || [];
+        const tableBody = document.getElementById("applicationsList");
+
+        // Отрисовка таблицы заявок
+        tableBody.innerHTML = applications.length
+          ? applications.map(app => `
+            <tr>
+              <td>${app.id}</td>
+              <td>${app.course_name}</td>
+              <td>${app.start_date}</td>
+              <td>${app.payment_method}</td>
+              <td>${app.status}</td>
+              <td>${app.created_at}</td>
+             </tr>
+          `).join("")
           : "<tr><td colspan='6'>Заявок нет</td></tr>";
 
-        // Отзыв доступен только после завершения курса
-        const done = apps.some(a => a.status === "Обучение завершено");
-        const rs = document.getElementById("reviewStatus");
-        const rt = document.getElementById("reviewText");
-        const rb = document.getElementById("reviewSubmit");
-        if (done) {
-          rs.className = "msg ok";
-          rs.textContent = "Курс завершён. Можно оставить отзыв.";
-          rt.disabled = rb.disabled = false;
+        // Проверка, можно ли оставлять отзыв (есть ли завершённые курсы)
+        const hasCompleted = applications.some(app => app.status === "Обучение завершено");
+
+        const reviewStatusDiv = document.getElementById("reviewStatus");
+        const reviewTextarea = document.getElementById("reviewText");
+        const reviewButton = document.getElementById("reviewSubmit");
+
+        if (hasCompleted) {
+          reviewStatusDiv.className = "msg ok";
+          reviewStatusDiv.textContent = "Курс завершён. Можно оставить отзыв.";
+          reviewTextarea.disabled = false;
+          reviewButton.disabled = false;
         } else {
-          rs.className = "msg error";
-          rs.textContent = "Отзыв доступен только после завершения курса.";
+          reviewStatusDiv.className = "msg error";
+          reviewStatusDiv.textContent = "Отзыв доступен только после завершения курса.";
           document.getElementById("reviewForm").classList.add("is-locked");
         }
       }
+
       load();
 
-      document.getElementById("reviewForm").addEventListener("submit", async e => {
-        e.preventDefault();
+      // Отправка отзыва
+      document.getElementById("reviewForm").addEventListener("submit", async event => {
+        event.preventDefault();
+
         const text = document.getElementById("reviewText").value.trim();
         if (!text) return;
-        const res = await fetch("/api/reviews", {
+
+        const response = await fetch("/api/reviews", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: Number(uid), text })
+          body: JSON.stringify({
+            user_id: Number(userId),
+            text: text
+          })
         });
-        const j = await res.json().catch(() => ({}));
-        const rm = document.getElementById("reviewMsg");
-        rm.textContent = res.ok ? "Отзыв отправлен." : j.error || "Ошибка.";
-        rm.className = res.ok ? "msg ok" : "msg error";
-        if (res.ok) document.getElementById("reviewText").value = "";
+
+        const result = await response.json().catch(() => ({}));
+        const reviewMessage = document.getElementById("reviewMessage");
+
+        reviewMessage.textContent = response.ok ? "Отзыв отправлен." : result.error || "Ошибка.";
+        reviewMessage.className = response.ok ? "msg ok" : "msg error";
+
+        if (response.ok) {
+          document.getElementById("reviewText").value = "";
+        }
       });
     }
   </script>

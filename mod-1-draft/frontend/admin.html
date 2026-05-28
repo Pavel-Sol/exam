@@ -11,11 +11,17 @@
 <body>
   <div class="container">
     <h1>Панель администратора</h1>
+
+    <!-- Блок при отсутствии прав -->
     <div id="accessWarn" style="display:none">
-      <p>Доступ запрещён.</p><a href="/login">Войти</a>
+      <p>Доступ запрещён.</p>
+      <a href="/login">Войти</a>
     </div>
+
+    <!-- Основной контент -->
     <div id="content" style="display:none">
       <h2>Все заявки</h2>
+
       <div style="overflow-x:auto">
         <table class="table">
           <thead>
@@ -29,56 +35,135 @@
               <th>Действие</th>
             </tr>
           </thead>
-          <tbody id="tbody"></tbody>
+          <tbody id="applicationsTable"></tbody>
         </table>
       </div>
-      <p id="msg" class="msg"></p>
+
+      <p id="message" class="msg"></p>
     </div>
   </div>
 
   <script>
-    const role = localStorage.getItem("role");
-    if (role !== "admin") {
+    // ========================
+    // ПРОВЕРКА ПРАВ ДОСТУПА
+    // ========================
+    const userRole = localStorage.getItem("role");
+
+    if (userRole !== "admin") {
+      // Нет прав - показываем предупреждение
       document.getElementById("accessWarn").style.display = "block";
     } else {
+      // Есть права - показываем панель
       document.getElementById("content").style.display = "block";
 
-      function render(apps) {
-        const tb = document.getElementById("tbody");
-        tb.innerHTML = apps.length
-          ? apps.map(a => `<tr>
-          <td>${a.id}</td><td>${a.user_login}</td><td>${a.course_name}</td>
-          <td>${a.start_date}</td><td>${a.payment_method}</td>
-          <td><select class="ss" data-id="${a.id}">
-            <option ${a.status === "Новая" ? "selected" : ""}>Новая</option>
-            <option ${a.status === "Идёт обучение" ? "selected" : ""}>Идёт обучение</option>
-            <option ${a.status === "Обучение завершено" ? "selected" : ""}>Обучение завершено</option>
-          </select></td>
-          <td><button class="sb" data-id="${a.id}">Сохранить</button></td>
-        </tr>`).join("")
-          : "<tr><td colspan='7'>Заявок нет</td></tr>";
-        tb.querySelectorAll(".sb").forEach(b => b.addEventListener("click", async () => {
-          const id = b.dataset.id;
-          const sel = tb.querySelector(`.ss[data-id="${id}"]`);
-          const res = await fetch(`/api/admin/applications/${id}/status`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: sel.value })
+      // ========================
+      // ОТРИСОВКА ТАБЛИЦЫ
+      // ========================
+      function renderApplicationsTable(applications) {
+        const tableBody = document.getElementById("applicationsTable");
+
+        // Если заявок нет
+        if (!applications.length) {
+          tableBody.innerHTML = "<tr><td colspan='7'>Заявок нет</td></tr>";
+          return;
+        }
+
+        // Создаём строки для каждой заявки
+        const rowsHtml = applications.map(function (app) {
+          return `
+            <tr>
+              <td>${app.id}</td>
+              <td>${app.user_login}</td>
+              <td>${app.course_name}</td>
+              <td>${app.start_date}</td>
+              <td>${app.payment_method}</td>
+              <td>
+                <select class="statusSelect" data-id="${app.id}">
+                  <option ${app.status === "Новая" ? "selected" : ""}>Новая</option>
+                  <option ${app.status === "Идёт обучение" ? "selected" : ""}>Идёт обучение</option>
+                  <option ${app.status === "Обучение завершено" ? "selected" : ""}>Обучение завершено</option>
+                </select>
+              </td>
+              <td>
+                <button class="saveButton" data-id="${app.id}">Сохранить</button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+
+        tableBody.innerHTML = rowsHtml;
+
+        // ========================
+        // НАСТРОЙКА КНОПОК СОХРАНЕНИЯ
+        // ========================
+        const allSaveButtons = document.querySelectorAll(".saveButton");
+
+        allSaveButtons.forEach(function (button) {
+          button.addEventListener("click", async function () {
+            const applicationId = button.dataset.id;
+
+            // Находим соответствующий select для этой заявки
+            const selectElement = document.querySelector(
+              `.statusSelect[data-id="${applicationId}"]`
+            );
+            const newStatus = selectElement.value;
+
+            // Отправляем запрос на сервер
+            try {
+              const response = await fetch(
+                `/api/admin/applications/${applicationId}/status`,
+                {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ status: newStatus })
+                }
+              );
+
+              const result = await response.json();
+              const messageElement = document.getElementById("message");
+
+              if (response.ok) {
+                messageElement.textContent = "Статус обновлён.";
+                messageElement.className = "msg ok";
+              } else {
+                messageElement.textContent = result.error || "Ошибка при обновлении.";
+                messageElement.className = "msg error";
+              }
+            } catch (error) {
+              const messageElement = document.getElementById("message");
+              messageElement.textContent = "Ошибка соединения с сервером.";
+              messageElement.className = "msg error";
+            }
           });
-          const j = await res.json().catch(() => ({}));
-          const msg = document.getElementById("msg");
-          msg.textContent = res.ok ? "Статус обновлён." : j.error || "Ошибка.";
-          msg.className = res.ok ? "msg ok" : "msg error";
-        }));
+        });
       }
 
-      async function load() {
-        const res = await fetch("/api/admin/applications");
-        const j = await res.json().catch(() => ({}));
-        if (!res.ok) { document.getElementById("msg").textContent = j.error || "Ошибка."; return; }
-        render(j.applications || []);
+      // ========================
+      // ЗАГРУЗКА ДАННЫХ С СЕРВЕРА
+      // ========================
+      async function loadApplications() {
+        try {
+          const response = await fetch("/api/admin/applications");
+          const data = await response.json();
+          const messageElement = document.getElementById("message");
+
+          if (!response.ok) {
+            messageElement.textContent = data.error || "Ошибка загрузки.";
+            messageElement.className = "msg error";
+            return;
+          }
+
+          renderApplicationsTable(data.applications || []);
+
+        } catch (error) {
+          const messageElement = document.getElementById("message");
+          messageElement.textContent = "Ошибка соединения с сервером.";
+          messageElement.className = "msg error";
+        }
       }
-      load();
+
+      // Запускаем загрузку при открытии страницы
+      loadApplications();
     }
   </script>
 </body>
